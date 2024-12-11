@@ -595,3 +595,552 @@ React Reactjs 10分钟快速入门
 https://www.bilibili.com/video/BV1ZL4y1p7Ds/
 
 奇乐编程学院 2021-11-28 16:08:07
+
+### 进阶版
+
+
+
+```jsx
+// 引入 Bootstrap 的样式文件
+import "bootstrap/dist/css/bootstrap.min.css";
+// 引入 React 核心功能及相关钩子
+import React, { useState, useEffect, useRef } from 'react';
+// 引入 React Bootstrap 组件和图标
+import { Button, Navbar, Modal } from "react-bootstrap";
+import { CardChecklist, Trash } from 'react-bootstrap-icons';
+import Container from 'react-bootstrap/Container';
+import FormControl from 'react-bootstrap/FormControl';
+import InputGroup from 'react-bootstrap/InputGroup';
+// 引入 React DOM 用于渲染组件
+import ReactDOM from 'react-dom';
+
+// 使用浏览器的 localStorage 存储数据
+const storage = window.localStorage;
+
+/**
+ * 自定义 Hook：useCallbackState
+ * - 用于设置带回调功能的状态
+ * @param {any} od - 初始状态值
+ * @returns [state, setStateWithCallback] - 状态值和支持回调的设置函数
+ */
+function useCallbackState(od) {
+  const cbRef = useRef(); // 存储回调函数的引用
+  const [data, setData] = useState(od); // 定义状态
+
+  useEffect(() => {
+    // 状态更新后执行回调函数
+    cbRef.current && cbRef.current(data);
+  }, [data]);
+
+  return [data, function (d, callback) {
+    cbRef.current = callback; // 更新回调函数引用
+    setData(d); // 更新状态
+  }];
+}
+
+/**
+ * 从 localStorage 中获取待办事项
+ * - 如果没有存储数据，则返回默认值
+ * @returns {Array} 待办事项数组
+ */
+function fetchTodos() {
+  let todoTasks = storage.getItem("todoTasks");
+  if (eval(todoTasks)) {
+    // 解析存储的 JSON 数据
+    todoTasks = JSON.parse(todoTasks);
+    return todoTasks;
+  }
+  // 返回默认任务
+  return [
+    {
+      id: 1,
+      title: "Hey, 这是一个用于追踪计划完成明细的清单,你可以点击下面的按钮,试着添加独属于你的计划任务",
+      completed: false,
+    }
+  ];
+}
+
+/**
+ * 主应用组件
+ */
+function App() {
+  // 使用自定义 Hook 管理待办事项状态
+  const [todos, setTodos] = useCallbackState(fetchTodos());
+  // 控制添加待办事项的模态框显示状态
+  const [show, setShow] = useState(false);
+  const handleClose = () => setShow(false); // 关闭模态框
+  const handleShow = () => setShow(true);  // 显示模态框
+
+  /**
+   * 添加新待办事项
+   */
+  const handleAddItem = () => {
+    let todo = {};
+    todo.id = guid(); // 生成唯一 ID
+    todo.title = document.getElementById("todoItem").value; // 获取输入内容
+    todo.completed = document.getElementById("ifCompleted").checked; // 是否已完成
+    todos.push(todo); // 添加到待办事项数组
+    setTodos(todos); // 更新状态
+    setShow(false); // 关闭模态框
+    save(todos); // 保存到 localStorage
+  };
+
+  return (
+    <>
+      {/* 导航栏 */}
+      <Navbar bg="dark" variant="dark">
+        <Container>
+          <Navbar.Brand href="#home">
+            <CardChecklist /> 待办清单
+          </Navbar.Brand>
+        </Container>
+      </Navbar>
+
+      {/* 待办事项列表 */}
+      <Container>
+        {todos.map((todo) => (
+          <TodoItem
+            key={todo.id}
+            title={todo.title}
+            completed={todo.completed}
+            onDelete={() => {
+              // 删除待办事项
+              setTodos(todos.filter((x) => x.id !== todo.id), function (todos) {
+                save(todos);
+              });
+            }}
+            onToggle={() => {
+              // 切换完成状态
+              setTodos(
+                todos.map((x) =>
+                  x.id === todo.id ? { ...x, completed: !x.completed } : x
+                ),
+                function (todos) {
+                  save(todos);
+                }
+              );
+            }}
+            onEdit={(event) => {
+              // 编辑待办事项标题
+              setTodos(
+                todos.map((x) =>
+                  x.id === todo.id ? { ...x, title: event.target.value } : x
+                ),
+                function (todos) {
+                  save(todos);
+                }
+              );
+            }}
+          />
+        ))}
+        {/* 新增待办按钮 */}
+        <div className="d-grid gap-2">
+          <Button variant="primary" size="lg" onClick={handleShow}>
+            新增待办
+          </Button>
+        </div>
+      </Container>
+
+      {/* 新增待办模态框 */}
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>添加待办事项</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <InputGroup className="mb-3">
+            <InputGroup.Checkbox aria-label="是否已完成" id="ifCompleted" />
+            <FormControl
+              aria-label="输入待办事项"
+              id="todoItem"
+              placeholder="输入待办任务,勾选左侧代表已完成"
+            />
+          </InputGroup>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            取消
+          </Button>
+          <Button variant="primary" onClick={handleAddItem}>
+            保存
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
+  );
+
+  /**
+   * 保存待办事项到 localStorage
+   * @param {Array} todos - 待办事项数组
+   */
+  function save(todos) {
+    storage.setItem("todoTasks", JSON.stringify(todos));
+  }
+
+  /**
+   * 单个待办事项组件
+   * @param {Object} props - 待办事项属性
+   */
+  function TodoItem(props) {
+    return (
+      <InputGroup key={props.id}>
+        <InputGroup.Checkbox
+          checked={props.completed}
+          onChange={props.onToggle}
+        />
+        <FormControl
+          defaultValue={props.title}
+          onBlur={props.onEdit}
+          style={{
+            textDecoration: props.completed ? "line-through 4px" : "none",
+          }}
+        />
+        <Button variant="outline-danger" onClick={props.onDelete}>
+          <Trash />
+        </Button>
+      </InputGroup>
+    );
+  }
+
+  /**
+   * 生成唯一 ID
+   * @returns {string} GUID
+   */
+  function guid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0,
+        v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+}
+
+// 渲染主应用到 DOM
+ReactDOM.render(<App />, document.getElementById('root'));
+```
+
+### 优化版
+
+```jsx
+// 引入 Bootstrap 样式文件，用于快速设置样式
+import "bootstrap/dist/css/bootstrap.min.css";
+// 引入 React 核心功能及相关钩子
+import React, { useState, useEffect, useRef } from 'react';
+// 引入 React Bootstrap 组件和图标，用于实现 UI 组件
+import { Button, Navbar, Modal } from "react-bootstrap";
+import { CardChecklist, Trash } from 'react-bootstrap-icons';
+import Container from 'react-bootstrap/Container';
+import FormControl from 'react-bootstrap/FormControl';
+import InputGroup from 'react-bootstrap/InputGroup';
+// 引入 ReactDOM 用于渲染 React 组件
+import ReactDOM from 'react-dom';
+
+// 获取浏览器的 localStorage，用于持久化存储数据
+const storage = window.localStorage;
+
+/**
+ * 自定义 Hook：useCallbackState
+ * 用于在更新状态时支持异步回调，确保回调在状态更新后执行。
+ * @param {any} initialState - 初始状态值
+ * @returns {[any, function]} 状态值和更新状态的函数
+ */
+function useCallbackState(initialState) {
+  const callbackRef = useRef(); // 存储回调函数的引用
+  const [state, setState] = useState(initialState); // 定义状态
+
+  useEffect(() => {
+    // 在状态更新后调用回调函数
+    if (callbackRef.current) {
+      callbackRef.current(state);
+    }
+  }, [state]);
+
+  // 包装的 setState 函数，支持回调
+  const setStateWithCallback = (newState, callback) => {
+    callbackRef.current = callback;
+    setState(newState);
+  };
+
+  return [state, setStateWithCallback];
+}
+
+/**
+ * 从 localStorage 获取待办事项列表
+ * 如果不存在有效数据，则返回默认值。
+ * @returns {Array} 待办事项列表
+ */
+function fetchTodos() {
+  const todoTasks = storage.getItem("todoTasks");
+  if (todoTasks) {
+    try {
+      return JSON.parse(todoTasks);
+    } catch (error) {
+      console.error("Failed to parse todoTasks from localStorage:", error);
+    }
+  }
+  // 默认返回的待办事项
+  return [
+    {
+      id: 1,
+      title: "Hey, 这是一个用于追踪计划完成明细的清单，你可以点击下面的按钮，试着添加独属于你的计划任务",
+      completed: false,
+    },
+  ];
+}
+
+/**
+ * 主应用组件
+ * 包括待办事项的列表显示、增删改查功能。
+ */
+function App() {
+  // 使用自定义 Hook 管理待办事项的状态
+  const [todos, setTodos] = useCallbackState(fetchTodos());
+  // 控制模态框的显示状态
+  const [showModal, setShowModal] = useState(false);
+
+  // 关闭模态框
+  const handleCloseModal = () => setShowModal(false);
+  // 显示模态框
+  const handleShowModal = () => setShowModal(true);
+
+  /**
+   * 添加新的待办事项
+   */
+  const handleAddItem = () => {
+    const newTodo = {
+      id: generateUUID(), // 生成唯一 ID
+      title: document.getElementById("todoItem").value.trim(), // 获取输入框的值并去掉首尾空格
+      completed: document.getElementById("ifCompleted").checked, // 获取是否完成的状态
+    };
+
+    // 校验输入，防止添加空任务
+    if (!newTodo.title) {
+      alert("待办事项标题不能为空！");
+      return;
+    }
+
+    const updatedTodos = [...todos, newTodo]; // 使用扩展运算符生成新数组，确保状态不可变
+    setTodos(updatedTodos, saveTodos); // 更新状态并保存到 localStorage
+    setShowModal(false); // 关闭模态框
+  };
+
+  return (
+    <>
+      {/* 导航栏 */}
+      <Navbar bg="dark" variant="dark">
+        <Container>
+          <Navbar.Brand href="#home">
+            <CardChecklist /> 待办清单
+          </Navbar.Brand>
+        </Container>
+      </Navbar>
+
+      {/* 待办事项列表 */}
+      <Container>
+        {todos.map((todo) => (
+          <TodoItem
+            key={todo.id} // 使用唯一 ID 作为 key
+            title={todo.title}
+            completed={todo.completed}
+            onDelete={() => {
+              const filteredTodos = todos.filter((x) => x.id !== todo.id); // 过滤掉被删除的项
+              setTodos(filteredTodos, saveTodos); // 更新状态并保存
+            }}
+            onToggle={() => {
+              const toggledTodos = todos.map((x) =>
+                x.id === todo.id ? { ...x, completed: !x.completed } : x
+              ); // 切换完成状态
+              setTodos(toggledTodos, saveTodos);
+            }}
+            onEdit={(event) => {
+              const editedTodos = todos.map((x) =>
+                x.id === todo.id ? { ...x, title: event.target.value.trim() } : x
+              ); // 更新标题
+              setTodos(editedTodos, saveTodos);
+            }}
+          />
+        ))}
+        <div className="d-grid gap-2">
+          <Button variant="primary" size="lg" onClick={handleShowModal}>
+            新增待办
+          </Button>
+        </div>
+      </Container>
+
+      {/* 新增待办模态框 */}
+      <Modal show={showModal} onHide={handleCloseModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>添加待办事项</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <InputGroup className="mb-3">
+            <InputGroup.Checkbox aria-label="是否已完成" id="ifCompleted" />
+            <FormControl
+              aria-label="输入待办事项"
+              id="todoItem"
+              placeholder="输入待办任务，勾选左侧代表已完成"
+            />
+          </InputGroup>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseModal}>
+            取消
+          </Button>
+          <Button variant="primary" onClick={handleAddItem}>
+            保存
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
+  );
+
+  /**
+   * 保存待办事项到 localStorage
+   */
+  function saveTodos() {
+    storage.setItem("todoTasks", JSON.stringify(todos));
+  }
+
+  /**
+   * 待办事项子组件
+   * @param {object} props - 待办事项的属性
+   */
+  function TodoItem({ title, completed, onDelete, onToggle, onEdit }) {
+    return (
+      <InputGroup>
+        <InputGroup.Checkbox checked={completed} onChange={onToggle} />
+        <FormControl
+          defaultValue={title}
+          onBlur={onEdit}
+          style={{
+            textDecoration: completed ? "line-through 4px" : "none", // 已完成任务添加删除线
+          }}
+        />
+        <Button variant="outline-danger" onClick={onDelete}>
+          <Trash />
+        </Button>
+      </InputGroup>
+    );
+  }
+
+  /**
+   * 生成唯一 ID
+   * 使用随机数和时间戳的组合，确保唯一性
+   * @returns {string} 唯一 ID
+   */
+  function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+}
+
+// 将主应用组件渲染到 DOM 中的指定节点
+ReactDOM.render(<App />, document.getElementById('root'));
+```
+
+
+
+![image-20241211170358282](README/image-20241211170358282.png)
+
+
+
+![image-20241211170411092](README/image-20241211170411092.png)
+
+
+
+![image-20241211170504409](README/image-20241211170504409.png)
+
+
+
+
+
+
+
+
+
+## 修改默认端口
+
+在 React 项目中，可以通过以下几种方式修改开发服务器的默认端口（通常是 `3000`）：
+
+---
+
+### 方法 1: 修改 `package.json`
+在 `package.json` 中的 `scripts` 部分，直接为 `start` 命令指定端口：
+```json
+"scripts": {
+  "start": "PORT=4000 react-scripts start"
+}
+```
+- 将 `4000` 替换为你想使用的端口号。
+- 注意：在 Windows 系统中，可能需要使用 `cross-env` 工具来支持设置环境变量。
+
+**在 Windows 系统上运行时的解决方案**：
+```bash
+npm install cross-env --save-dev
+```
+然后修改 `package.json` 的 `start` 命令为：
+```json
+"scripts": {
+  "start": "cross-env PORT=4000 react-scripts start"
+}
+```
+
+---
+
+### 方法 2: 使用 `.env` 文件
+创建一个 `.env` 文件（如果不存在），并添加以下内容：
+```env
+PORT=4000
+```
+- 这会将开发服务器的端口设置为 `4000`。
+- 确保 `.env` 文件位于项目的根目录中，并且在 `.gitignore` 中已忽略。
+
+---
+
+### 方法 3: 命令行参数（临时修改）
+在运行 `npm start` 时，可以直接在命令前指定端口：
+```bash
+PORT=4000 npm start
+```
+- 对于 Windows 系统，可能需要借助 `cross-env` 工具：
+```bash
+npx cross-env PORT=4000 npm start
+```
+- 此方法仅在当前运行命令时生效，不会永久更改项目配置。
+
+---
+
+### 方法 4: 使用 `webpack-dev-server` 配置
+如果你使用了 `webpack-dev-server`，可以通过修改 `webpack.config.js` 中的 `devServer` 配置来更改端口：
+```javascript
+module.exports = {
+  // 其他 webpack 配置
+  devServer: {
+    port: 4000, // 设置开发服务器端口
+  },
+};
+```
+
+---
+
+### 方法 5: 检查端口占用问题
+在某些情况下，如果你发现端口冲突问题，可以通过以下命令释放占用端口：
+
+- **Linux/macOS**:
+  ```bash
+  sudo lsof -i :3000
+  sudo kill -9 <PID>
+  ```
+- **Windows**:
+  ```bash
+  netstat -ano | findstr :3000
+  taskkill /PID <PID> /F
+  ```
+
+---
+
+### 总结
+- **最简单的方法**：使用 `.env` 文件或在命令行指定端口。
+- **适合复杂项目**：通过 `webpack-dev-server` 或修改 `package.json` 结合 `cross-env` 工具。
