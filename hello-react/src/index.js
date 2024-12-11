@@ -15,8 +15,26 @@ function fetchTodos() {
   { id: 5, title: "睡觉", completed: true }];
 }
 
+function TodoItem(props) {
+  return (<InputGroup key={props.id}>
+    <InputGroup.Checkbox
+      checked={props.completed}
+      onChange={props.onToggle}
+    />
+    <FormControl value={props.title}
+      style={{
+        textDecoration: props.completed ? 'line-through 4px' : 'none'
+      }}
+    />
+    <Button variant="outline-danger" onClick={props.onDelete}>
+      <Trash />
+    </Button>
+  </InputGroup>);
+}
+
 function App() {
-  const todos = fetchTodos();
+  // const todos = fetchTodos();
+  const [todos, setTodos] = React.useState(fetchTodos());
 
   return <>
     <Navbar bg="dark" variant="dark">
@@ -25,19 +43,25 @@ function App() {
           <CardChecklist /> 待办事项
         </Navbar.Brand>
       </Container>
-    
     </Navbar>
 
     <Container>
       {
-        todos.map(todo => (<InputGroup key={todo.id}>
-          <InputGroup.Checkbox checked={todo.completed} />
-          <FormControl value={todo.title}
-            style={{
-              textDecoration: todo.completed ? 'line-through 4px' : 'none'
+        todos.map((todo) => (
+          <TodoItem key={todo.id}
+            title={todo.title}
+            completed={todo.completed}
+            onDelete={() => {
+              setTodos(todos.filter((t) => t.id !== todo.id));
+            }}
+            onToggle={() => {
+              setTodos(todos.map((t) =>
+                t.id === todo.id ? { ...todo, completed: !todo.completed } : t
+              )
+              );
             }}
           />
-        </InputGroup>))
+        ))
       }
     </Container>
   </>;

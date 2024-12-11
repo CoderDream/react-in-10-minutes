@@ -356,9 +356,243 @@ root.render(
 
 可以看到用`React`创建  一个漂亮的界面，其实非常的容易。
 
-目前我们的界面还非常简单，假设我们之后加入了更多的代码，当组件变得更加复杂以后，我们可以考虑将其中可以重用的代码拆分成一个个独立的组件，也就是模块化，比如这里的列表元素可以被抽离成一个单独的组件，我们叫它to do item，列表中的文字和复选框状态，我们可以用类似于html标签属性的语法，并作为函数参数props传递进来，随后我们可以通过props.title，props.completed来访问他们，这里的crops在react中也被叫做属性，首先属性一定是由上层元素自上而下传递下来的，其次属性是只读的，换句话说，我不能在函数内部修改它们，一个组件的属性会直接决定它的输出，也就是我们最终渲染的结果，这种模式呢也是我们经常听到的单向数据流模式，因为它从源头上避免了数据在组件之间的来回传递，因此更加利于调试和维护，之前我们讲到的属性可以在元素中传递静态的数据，但在实际使用中，肯定有数据是动态的，比如这里的待办事项列表，我们应当是允许去更新或者删除其中的条目的，因此要存储动态变化的数据，我们需要用到React中另一个重要的概念，状态状态，在rec中要定一个状态，我们需要用到u state方法，它会返回两个值，第一个是存储当前状态变量的to do os，第二个是用于修改状态的方法，set to do is，最后这里的参数代表状态的初始值，需要强调的是，要修改一个状态，我们是不能够直接对这里的to toos变量赋值的，这样是没有用的，相反我们必须调用set to do is方法，那你可能会问，为什么我们不直接定一个普通变量，而是依靠react提供的这套机制来管理状态呢，首先使用函数的局部变量肯定是不行的，因为他们在函数退出时就自动销毁了，如果使用全局变量的话，我们还要考虑到它和组件生命周期的同步，因此这里呢我们只需要简单记住reg提供的这种特定的写法，具体的时间细节呢我们就不多做解释了，有了状态之后呢，我们可以给列表的每一行加入一个删除按钮，用来删除对应的待办事项，当我们点击按钮时，可以响应button on click事件，调用有属性传进来的on the elete回调函数，然后我们在之前的app组件中来定义这个函数，首先我们挑选出删除之后剩下的列表选项，然后调用set to do来更新当前的状态，修改程序之后点击删出来，你会看到这样的效果，整个过程大概是当我们点击按钮之后，状态被更新之后，界面会随着状态的变化而重新渲染，随后我们可以用同样的方法来响应复选框被按下的事件，on change，它会调用有属性传递进来的on togo回调函数，然后我们在之前的app组件中来定义这方通过函数即可，当复选框被选中或者取消选中时，我们会去修改对应元素的completed属性，最后调用set to do来更新当前的状态，在我们点击复选框之后，会立刻切换当前待办事项的完成状态，通过这个例子呢，我们就讲完了React中最核心的这几个概念，jsx语法组件的渲染属性和状态以及事件的响应，当然react的强大之处肯定不单单在于这个库本身，而是他背后庞大的生态链和数不胜数的开源库，要配置路由，我们有react router要创建动画，我们有spring frame motion，要管理状态，我们有redux flex mob's require，要进服务端渲染，我们有next year gsp等等，这里特别值得一提的是，next js，你可以把它当做是一个js的全栈框架，它支持api路由服端渲染，前端的rec组件的呢几乎是零配置使用，比如我自己就用它搭建了一个小工具来管理本地的视频素材，开发效率非常之高，之后有机会的话，我们可以单独出一期视频讲讲，不得不说，blg从开源至今，虽然已经有8年之久，但依旧是一个非常受欢迎的，值得大家去学习和使用的前端技术框架，也希望这期视频能给大家带来一些帮助，最后感谢大家观看，我是罗斯，我们下期再见，终点，各种各种困难看你也会变成希望，
+目前我们的界面还非常简单，假设我们之后加入了更多的代码，当组件变得更加复杂以后，我们可以考虑将其中可以重用的代码拆分成一个个独立的组件，也就是模块化，比如这里的列表元素可以被抽离成一个单独的组件，我们叫它 `TodoItem`，列表中的文字和复选框状态，我们可以用类似于html标签属性的语法，并作为函数参数props传递进来，随后我们可以通过props.title，props.completed来访问他们，这里的props在react中也被叫做属性，首先属性一定是由上层元素自上而下传递下来的，其次属性是只读的，换句话说，我不能在函数内部修改它们，一个组件的属性会直接决定它的输出，也就是我们最终渲染的结果。
+
+```jsx
+import "bootstrap/dist/css/bootstrap.min.css";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Button, Navbar, Modal } from "react-bootstrap";
+import { CardChecklist, Trash } from 'react-bootstrap-icons';
+import Container from 'react-bootstrap/Container';
+import FormControl from 'react-bootstrap/FormControl';
+import InputGroup from 'react-bootstrap/InputGroup';
+
+function fetchTodos() {
+  return [{ id: 1, title: "吃饭", completed: false },
+  { id: 2, title: "刷牙", completed: false },
+  { id: 3, title: "喝水", completed: true },
+  { id: 4, title: "洗澡", completed: false },
+  { id: 5, title: "睡觉", completed: true }];
+}
+
+function TodoItem(props) {
+  return (<InputGroup key={props.id}>
+    <InputGroup.Checkbox checked={props.completed} />
+    <FormControl value={props.title}
+      style={{
+        textDecoration: props.completed ? 'line-through 4px' : 'none'
+      }}
+    />
+  </InputGroup>);
+}
+
+function App() {
+  const todos = fetchTodos();
+
+  return <>
+    <Navbar bg="dark" variant="dark">
+      <Container>
+        <Navbar.Brand href="#home">
+          <CardChecklist /> 待办事项
+        </Navbar.Brand>
+      </Container>
+    </Navbar>
+
+    <Container>
+      {
+        todos.map((todo) => (
+          <TodoItem key={todo.id} 
+          title={todo.title} 
+          completed={todo.completed} />
+        ))
+      }
+    </Container>
+  </>;
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <App />
+);
+```
+
+这种模式呢也是我们经常听到的单向数据流模式。
+
+![image-20241211115004089](README/image-20241211115004089.png)
+
+因为它从源头上避免了数据在组件之间的来回传递，因此更加利于调试和维护，之前我们讲到的属性可以在元素中传递静态的数据，但在实际使用中，肯定有数据是动态的，比如这里的待办事项列表，我们应当是允许去更新或者删除其中的条目的，因此要存储动态变化的数据，我们需要用到React中另一个重要的概念，`状态（States）`，
+
+在React中要定一个状态，我们需要用到`useState()`方法，它会返回两个值，第一个是存储当前状态变量的`todos`，第二个是用于修改状态的方法，`setTodos()`，最后这里的参数代表状态的初始值。
+
+需要强调的是，要修改一个状态，我们是不能够直接对这里的todos变量赋值的，这样是没有用的，相反我们必须调用setTodos方法，那你可能会问，为什么我们不直接定一个普通变量，而是依靠react提供的这套机制来管理状态呢？
+
+首先使用函数的局部变量肯定是不行的，因为他们在函数退出时就自动销毁了，如果使用全局变量的话，我们还要考虑到它和组件生命周期的同步，因此这里呢我们只需要简单记住reg提供的这种特定的写法，具体的时间细节呢我们就不多做解释了。
+
+有了状态之后呢，我们可以给列表的每一行加入一个删除按钮，用来删除对应的待办事项，当我们点击按钮时，可以响应button onClick事件，调用有属性传进来的onDelete回调函数，然后我们在之前的app组件中来定义这个函数。
+
+```jsx
+import "bootstrap/dist/css/bootstrap.min.css";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Button, Navbar, Modal } from "react-bootstrap";
+import { CardChecklist, Trash } from 'react-bootstrap-icons';
+import Container from 'react-bootstrap/Container';
+import FormControl from 'react-bootstrap/FormControl';
+import InputGroup from 'react-bootstrap/InputGroup';
+
+function fetchTodos() {
+  return [{ id: 1, title: "吃饭", completed: false },
+  { id: 2, title: "刷牙", completed: false },
+  { id: 3, title: "喝水", completed: true },
+  { id: 4, title: "洗澡", completed: false },
+  { id: 5, title: "睡觉", completed: true }];
+}
+
+function TodoItem(props) {
+  return (<InputGroup key={props.id}>
+    <InputGroup.Checkbox checked={props.completed} />
+    <FormControl value={props.title}
+      style={{
+        textDecoration: props.completed ? 'line-through 4px' : 'none'
+      }}
+    />
+    <Button variant="outline-danger" onClick={props.onDelete}>
+      <Trash />
+    </Button>
+  </InputGroup>);
+}
+
+function App() {
+  // const todos = fetchTodos();
+  const [todos, setTodos] = React.useState(fetchTodos());
+
+  return <>
+    <Navbar bg="dark" variant="dark">
+      <Container>
+        <Navbar.Brand href="#home">
+          <CardChecklist /> 待办事项
+        </Navbar.Brand>
+      </Container>
+    </Navbar>
+
+    <Container>
+      {
+        todos.map((todo) => (
+          <TodoItem key={todo.id} 
+          title={todo.title} 
+          completed={todo.completed}
+          onDelete={() => {
+            setTodos(todos.filter((t) => t.id !== todo.id));
+          }}
+          />
+        ))
+      }
+    </Container>
+  </>;
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <App />
+);
+```
+
+首先我们挑选出删除之后剩下的列表选项，然后调用setTodo来更新当前的状态，修改程序之后点击删出来，你会看到这样的效果。
+
+![image-20241211115819670](README/image-20241211115819670.png)
+
+整个过程大概是当我们点击按钮之后，状态被更新之后，界面会随着状态的变化而重新渲染。
 
 
+
+随后我们可以用同样的方法来响应复选框被按下的事件，onChange，它会调用有属性传递进来的on togo回调函数，然后我们在之前的app组件中来定义这方通过函数即可，当复选框被选中或者取消选中时，我们会去修改对应元素的completed属性，最后调用set to do来更新当前的状态，在我们点击复选框之后，会立刻切换当前待办事项的完成状态。
+
+通过这个例子呢，我们就讲完了React中最核心的这几个概念。
+
+```jsx
+import "bootstrap/dist/css/bootstrap.min.css";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Button, Navbar, Modal } from "react-bootstrap";
+import { CardChecklist, Trash } from 'react-bootstrap-icons';
+import Container from 'react-bootstrap/Container';
+import FormControl from 'react-bootstrap/FormControl';
+import InputGroup from 'react-bootstrap/InputGroup';
+
+function fetchTodos() {
+  return [{ id: 1, title: "吃饭", completed: false },
+  { id: 2, title: "刷牙", completed: false },
+  { id: 3, title: "喝水", completed: true },
+  { id: 4, title: "洗澡", completed: false },
+  { id: 5, title: "睡觉", completed: true }];
+}
+
+function TodoItem(props) {
+  return (<InputGroup key={props.id}>
+    <InputGroup.Checkbox
+      checked={props.completed}
+      onChange={props.onToggle}
+    />
+    <FormControl value={props.title}
+      style={{
+        textDecoration: props.completed ? 'line-through 4px' : 'none'
+      }}
+    />
+    <Button variant="outline-danger" onClick={props.onDelete}>
+      <Trash />
+    </Button>
+  </InputGroup>);
+}
+
+function App() {
+  // const todos = fetchTodos();
+  const [todos, setTodos] = React.useState(fetchTodos());
+
+  return <>
+    <Navbar bg="dark" variant="dark">
+      <Container>
+        <Navbar.Brand href="#home">
+          <CardChecklist /> 待办事项
+        </Navbar.Brand>
+      </Container>
+    </Navbar>
+
+    <Container>
+      {
+        todos.map((todo) => (
+          <TodoItem key={todo.id}
+            title={todo.title}
+            completed={todo.completed}
+            onDelete={() => {
+              setTodos(todos.filter((t) => t.id !== todo.id));
+            }}
+            onToggle={() => {
+              setTodos(todos.map((t) =>
+                t.id === todo.id ? { ...todo, completed: !todo.completed } : t
+              )
+              );
+            }}
+          />
+        ))
+      }
+    </Container>
+  </>;
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <App />
+);
+```
+
+
+
+![image-20241211120421297](README/image-20241211120421297.png)
+
+jsx语法、组件的渲染、属性和状态以及事件的响应，当然react的强大之处肯定不单单在于这个库本身，而是他背后庞大的生态链和数不胜数的开源库。要配置路由，我们有react router要创建动画，我们有spring frame motion，要管理状态，我们有redux flex mob's require，要进服务端渲染，我们有next year gsp等等。
+
+这里特别值得一提的是，next.js，你可以把它当做是一个js的全栈框架，它支持api路由服端渲染，前端的react组件的呢几乎是零配置使用，比如我自己就用它搭建了一个小工具来管理本地的视频素材，开发效率非常之高。
 
 
 
